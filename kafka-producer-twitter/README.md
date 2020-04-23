@@ -40,11 +40,3 @@ Set the variables:
 For more detail about how configure a Java HTTP cliente for consuming Twitter's check the link: 
 
 Hosebird Client (hbc) - https://github.com/twitter/hbc
-
-kafka-consumer-elasticsearch
-
-Used Elasticsearch - 
-
-- Manual installation: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-install.html
-
-- Elasticsearch on Demand - 3-node-cluster: https://bonsai.io/ 
