@@ -41,3 +41,10 @@ Used Elasticsearch -
 - Manual installation: https://www.elastic.co/guide/en/elasticsearch/reference/current/getting-started-install.html
 
 - Elasticsearch on Demand - 3-node-cluster: https://bonsai.io/ - 
+
+## Delivery Semantics
+
+- At most once: offsets are commited as soon as the message batch is received. If the processing goes wrong, the message will be lost (it won't be read again).
+- At least once: offsets are commited after the message is processed. If the processing goes wrong, the message will be read again. This can result in duplicate processing of messages. Make sure your processing
+is idempotent (i.e processing again the messages won't impact your systems)
+- Exacly once: Can be achieved for Kafka => Kafka workflows using Kafka Streams API. For Kafka => Sink workflows, use an idempotent consumer.
