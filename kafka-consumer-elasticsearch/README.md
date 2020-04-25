@@ -44,10 +44,10 @@ Used Elasticsearch -
 
 ## Delivery Semantics
 
-- At most once: offsets are commited as soon as the message batch is received. If the processing goes wrong, the message will be lost (it won't be read again).
-- At least once: offsets are commited after the message is processed. If the processing goes wrong, the message will be read again. This can result in duplicate processing of messages. Make sure your processing
+- At most once: offsets are committed as soon as the message batch is received. If the processing goes wrong, the message will be lost (it won't be read again).
+- At least once: offsets are committed after the message is processed. If the processing goes wrong, the message will be read again. This can result in duplicate processing of messages. Make sure your processing
 is idempotent (i.e processing again the messages won't impact your systems)
-- Exacly once: Can be achieved for Kafka => Kafka workflows using Kafka Streams API. For Kafka => Sink workflows, use an idempotent consumer.
+- Exactly once: Can be achieved for Kafka => Kafka workflows using Kafka Streams API. For Kafka => Sink workflows, use an idempotent consumer.
 
 ## Consumer Poll Behavior
 
@@ -82,4 +82,60 @@ is idempotent (i.e processing again the messages won't impact your systems)
     
 - With auto-commit, offsets will be committed automatically for you at regular interval (auto.commit.interval.ms=5000 by default) every-time you call .poll()
 - If you don't use synchronous processing, you will be in "at-most-once" behavior because offsets will be committed before your data is processed
+
+## Consumer Offset Reset Behaviour
+
+- A consumer is expected to read from a log continuously.
+- But if your application has a bug, your consumer can be down
+- If Kafka has a retention of 7 days, and your consumer is down for more than 7 days, the offsets are "invalid"
+- The behavior for the consumer is to then use:
+    - auto.offset.reset=latest: will read from the end of the log
+    - auto.offset.reset=earliest: will read from the start of the log
+    - auto.offset.reset=none: will throw exception if no offset is found
     
+- Additionally, consumer offsets can be lost:
+    - If a consumer hasn't read new data in 1 day (Kafka < 2.0)
+    - If a consumer hasn't read new data in 7 day (Kafka >= 2.0)
+**- This can be controlled by the broker setting offset.retention.minutes**
+
+## Replaying data for Consumers
+   
+- To replay data for a consumer group:
+    - Take all the consumers from a  specific group down
+    - Use 'kafka-consumers-groups' command to set offset to what you want
+    - Restart consumers
+    
+* Bottom line:
+    * Set proper data retention period & offset retention period ( the default is 7 days but you can set 1 month if you want to be super safe)
+    * Ensure the auto offset reset behavior is the one you expect / want
+    * Use replay capability in case of unexpected behavior
+
+## CLI Command to replay data
+
+``` kafka-consumer-groups.sh --bootstrap-server 127.0.0.1:9092 --group kafka-demo-elasticsearch --reset-offsets --execute --to-earliest --topic twitter_tweets ```
+
+## Controlling Consumer Liveliness (Good to know)
+
+<p align="center">
+  <img alt="Project Goals" src=".github/consumer-liveliness.png" width="100%">
+</p>
+
+## Consumer Heartbeat Thread
+
+- **- Session.timeout.ms (default 10 seconds):**
+    * Heartbeats are sent periodically to the broker
+    * If no heartbeat is sent during that period, the consumer is considered dead
+    * Set even lower to fast consumer rebalances
+- **Heartbeat.interval.ms (default 3 seconds):**
+    * How often to send heartbeats
+    * Usually set to 1/3 of session.timeout.ms
+
+**- Take-away: This mechanism is used to detect a consumer application being down**
+
+## Consumer Poll Thread
+
+- **max.poll.interval.ms(default 5 minutes):**
+    - Maximum amount of time between two .poll() calls before declaring the consumer dead
+    - This is particularly relevant for Big Data frameworks like Spark in case the processing takes time
+    
+**- Take-away: This mechanism is used to detect a data processing issue with the consumer**
