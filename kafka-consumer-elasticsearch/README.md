@@ -48,3 +48,38 @@ Used Elasticsearch -
 - At least once: offsets are commited after the message is processed. If the processing goes wrong, the message will be read again. This can result in duplicate processing of messages. Make sure your processing
 is idempotent (i.e processing again the messages won't impact your systems)
 - Exacly once: Can be achieved for Kafka => Kafka workflows using Kafka Streams API. For Kafka => Sink workflows, use an idempotent consumer.
+
+## Consumer Poll Behavior
+
+- Kafka consumers have a "poll" model, while many other messaging bus is enterprises have a "push" model.
+- This allows consumers to control where in the log they want to consume, how fast, and gives them the ability to replay events.
+- Fetch.min.bytes (default 1):
+    - Controls how much data you want to pull at least on each request
+    - Helps improving throughput and decreasing request number
+    - At the cost of latency
+- Max.poll.records (default 500):
+    - Controls how many records to receive per poll request
+    - Increase if your messages are very small and have a lot of available RAM
+    - Good to monitor how many records are polled per request
+- Max.partitions.fetch.bytes (default 1MB):
+    - Maximum data returned by the broker per partition
+    - If you read from 100 partitions, you'll need a lot of memory (RAM)
+- Fetch.max.bytes (default 50MB):
+    - Maximum data returned for each fetch request (covers multiple partitions)
+    - The consumer performs multiple fetches in parallel
+    
+***- Change these settings only if your consumer maxes out on throughput already***
+
+## Consumer Offset Commits Strategies
+
+- There are two most common patterns for committing offsets in a application
+
+- 2 strategies:
+    - (easy) enable.auto.commit = true & synchronous processing of batches
+    - (medium) enable.auto.commit = false & manual commit of offsets
+        - You control when you commit offsets and what's the condition for committing them.
+        - Example: accumulating records into a buffer and then flushing the buffer to a database + committing offsets then.
+    
+- With auto-commit, offsets will be committed automatically for you at regular interval (auto.commit.interval.ms=5000 by default) every-time you call .poll()
+- If you don't use synchronous processing, you will be in "at-most-once" behavior because offsets will be committed before your data is processed
+    
