@@ -1,4 +1,4 @@
-# Kafka Producer Twitter
+# Kafka Consumer ElasticSearch
 
 <p align="center">
   <img alt="Project Goals" src=".github/project-goals.png" width="100%">
